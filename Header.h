@@ -58,4 +58,11 @@ public:
     // debug tool to output the raw distances values
     void DebugDistances(vector<int> Distances);
 
+    // returns the mst edges using prim's algo
+    vector<pair<int, int>> PrimMST(int startingPoint,
+                                   vector<int>& mstWeight);
+
+    // Display the MST edges
+    void DisplayMST(const vector<pair<int, int>>& mstEdges,
+                    const vector<int>& key);
 };
