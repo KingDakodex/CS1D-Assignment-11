@@ -165,3 +165,89 @@ void Map::DebugDistances(vector<int> Distances)
         cout << endl;
     }
 }
+
+// returns the mst edges using prim's algo
+vector<pair<int, int>> Map::PrimMST(int startingPoint,
+                                    vector<int>& mstWeight)
+{
+    int size = adjList.size(); // Number of vertices in graph
+
+    vector<int> weight(size, INT_MAX); // Weight of the edge
+    vector<int> parent(size, -1);      // Parent of each city
+    vector<bool> inMST(size, false);   // Tracks if city is in MST
+
+    priority_queue<pair<int, int>, vector<pair<int, int>>,
+                   greater<pair<int, int>>> pQueue;
+
+    // Give starting point a weight of 0;
+    weight[startingPoint] = 0;
+    pQueue.emplace(0, startingPoint);
+
+    // Get the lowest weight not yet in the MST
+    while (!pQueue.empty())
+    {
+        // u is the vertex with smallest key value
+        int u = pQueue.top().second;
+        pQueue.pop();
+
+        // If vertex is already processed than skip it
+        if (!inMST[u])
+        {
+            inMST[u] = true; // Mark added
+
+            for (auto& pair : adjList[u])
+            {
+                int v = pair.first;  // Neighboring city
+                int w = pair.second; // distance from u to v
+
+                // if v is not in MST and edge u to v is cheaper, update
+                // the weight and parent
+                if (!inMST[v] && w < weight[v])
+                {
+                    weight[v] = w;          // new best weight
+                    parent[v] = u;          // track MST edge
+                    pQueue.emplace(w, v);   // push new weight to heap
+                }
+            }
+        }
+    }
+
+    // Create MST edge list
+    vector<pair<int, int>> mstEdges;
+
+    for (int v = 1; v < size; v++)
+    {
+        if (v != startingPoint && parent[v] != -1)
+        {
+            mstEdges.emplace_back(v, parent[v]);
+        }
+    }
+
+    mstWeight = weight; // return edge weights
+
+    return mstEdges;
+}
+
+// Display the MST edges
+void Map::DisplayMST(const vector<pair<int, int>>& mstEdges,
+    const vector<int>& weight)
+{
+    int totalWeight = 0;
+
+    cout << "\nMinimum Spanning Tree: \n\n";
+
+    for (auto& edge : mstEdges)
+    {
+        int v = edge.first; // child
+        int u = edge.second; // parent
+        int w = weight[v];    // weight of u to v
+
+        cout << CityDecoder(u) << " <---> " << CityDecoder(v);
+        cout << " : " << w << " miles\n";
+
+        totalWeight += w;
+    }
+
+    cout << endl;
+    cout << "Total MST weight: " << totalWeight << " miles";
+}
