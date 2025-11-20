@@ -116,46 +116,52 @@ vector<int> Map::DijkstraDistance(int startingPoint)
 
     // blank vector that will store the distances to each city
     vector<int> Distances(size, INT_MAX);
+
+    //vector that stores the individual paths taken per traversal from denver to any city
+    vector<int> parent(size, -1);
         // the city is the node number, IE find the correct city by using CityDecoder(i) where i is Distances[i]
 
     // distance to the starting point is 0
     Distances[startingPoint] = 0;
     PQueue.emplace(0, startingPoint);
 
-    // loop until all reachable cities are found
-    while (!PQueue.empty())
-    {
-        auto top = PQueue.top();
-        PQueue.pop();
+        Distances[startingPoint] = 0;
+        PQueue.emplace(0, startingPoint);
 
-        int d = top.first;  // temp distance
-        int u = top.second; // temp current city
-
-        // if this distance is not the current shortest one, skip it
-        if (d > Distances[u])
+        while (!PQueue.empty())
         {
-            continue;
-        }
+            auto [d, u] = PQueue.top();
+            PQueue.pop();
 
-        // explore all neighbors of the current city
-        for (auto& p : adjList[u])
-        {
-            int v = p.first;    // temp distance
-            int w = p.second;   // temp city
+            if (d > Distances[u])
+                continue;
 
-            // if a shorter path is found through v (temp Distance), update it
-            if (Distances[u] + w < Distances[v])
+            for (auto& p : adjList[u])
             {
-                Distances[v] = Distances[u] + w;
-                PQueue.emplace(Distances[v], v);
+                int v = p.first;
+                int w = p.second;
+
+                if (Distances[u] + w < Distances[v])
+                {
+                    Distances[v] = Distances[u] + w;
+                    parent[v] = u;                  // <-- record the path
+                    PQueue.emplace(Distances[v], v);
+                }
             }
         }
-    }
 
-    // Return the final vector of shortest Distances
-    return Distances;
+        // After computing the full SPT, print paths:
+        cout << "\nPaths from " << CityDecoder(startingPoint) << ":\n";
+        for (int city = 1; city < size; city++)
+        {
+            if (city == startingPoint) continue;
+            PrintPaths(parent, startingPoint, city, Distances[city]);
+        }
+
+        return Distances;
 }
 
+//Print the Dijkstra
 void Map::DebugDistances(vector<int> Distances)
 {
     for (int i = 1; i < Distances.size(); i++)
@@ -164,4 +170,118 @@ void Map::DebugDistances(vector<int> Distances)
         cout << Distances[i];
         cout << endl;
     }
+}
+
+//perform and print the Dijkstra route distances from starting point to each other node:
+void Map::Dijkstra(int startingPoint) {
+	vector<int> dijkstraDistances;
+
+	cout << "\nThe shortest distance route from " << CityDecoder(startingPoint) << " to the rest of the cities within this map is as follows:\n";
+	//perform pathfinding and print paths + distances per city
+	dijkstraDistances = DijkstraDistance(startingPoint);
+}
+
+void Map::PrintPaths(const vector<int>& parent, int start, int end, int distance) {
+    //recreate path taken by walking backwards
+    vector<int> path;
+    for (int v = end; v != -1; v = parent[v])
+        path.push_back(v);
+
+    reverse(path.begin(), path.end()); //now in start to end ordering
+
+    //print the path
+    for (int i = 0; i < path.size(); i++)
+    {
+        cout << CityDecoder(path[i]);
+        if (i < path.size() - 1) cout << " --> ";
+    }
+
+    cout << " : " << distance << " miles\n";
+}
+
+
+// returns the mst edges using prim's algo
+vector<pair<int, int>> Map::PrimMST(int startingPoint,
+                                    vector<int>& mstWeight)
+{
+    int size = adjList.size(); // Number of vertices in graph
+
+    vector<int> weight(size, INT_MAX); // Weight of the edge
+    vector<int> parent(size, -1);      // Parent of each city
+    vector<bool> inMST(size, false);   // Tracks if city is in MST
+
+    priority_queue<pair<int, int>, vector<pair<int, int>>,
+                   greater<pair<int, int>>> pQueue;
+
+    // Give starting point a weight of 0;
+    weight[startingPoint] = 0;
+    pQueue.emplace(0, startingPoint);
+
+    // Get the lowest weight not yet in the MST
+    while (!pQueue.empty())
+    {
+        // u is the vertex with smallest key value
+        int u = pQueue.top().second;
+        pQueue.pop();
+
+        // If vertex is already processed than skip it
+        if (!inMST[u])
+        {
+            inMST[u] = true; // Mark added
+
+            for (auto& pair : adjList[u])
+            {
+                int v = pair.first;  // Neighboring city
+                int w = pair.second; // distance from u to v
+
+                // if v is not in MST and edge u to v is cheaper, update
+                // the weight and parent
+                if (!inMST[v] && w < weight[v])
+                {
+                    weight[v] = w;          // new best weight
+                    parent[v] = u;          // track MST edge
+                    pQueue.emplace(w, v);   // push new weight to heap
+                }
+            }
+        }
+    }
+
+    // Create MST edge list
+    vector<pair<int, int>> mstEdges;
+
+    for (int v = 1; v < size; v++)
+    {
+        if (v != startingPoint && parent[v] != -1)
+        {
+            mstEdges.emplace_back(v, parent[v]);
+        }
+    }
+
+    mstWeight = weight; // return edge weights
+
+    return mstEdges;
+}
+
+// Display the MST edges
+void Map::DisplayMST(const vector<pair<int, int>>& mstEdges,
+    const vector<int>& weight)
+{
+    int totalWeight = 0;
+
+    cout << "\nMinimum Spanning Tree: \n\n";
+
+    for (auto& edge : mstEdges)
+    {
+        int v = edge.first; // child
+        int u = edge.second; // parent
+        int w = weight[v];    // weight of u to v
+
+        cout << CityDecoder(u) << " <---> " << CityDecoder(v);
+        cout << " : " << w << " miles\n";
+
+        totalWeight += w;
+    }
+
+    cout << endl;
+    cout << "Total MST weight: " << totalWeight << " miles";
 }
